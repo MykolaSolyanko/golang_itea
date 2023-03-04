@@ -1,28 +1,135 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
 )
 
+type Competitor struct {
+	Nr int
+	Pi int
+}
+
+type Pair struct {
+	fNr   int
+	sNr   int
+	delta int
+}
+
+/*
+|--------------------------------------------------------------------------
+| Task description
+|--------------------------------------------------------------------------
+|
+| The Goal
+| Casablanca’s hippodrome is organizing a new type of horse racing: duals. During a dual,
+| only two horses will participate in the race.
+| In order for the race to be interesting,
+| it is necessary to try to select two horses with similar strength.
+|
+| Write a program which, using a given number of strengths,
+| identifies the two closest strengths and shows their difference with an integer (≥ 0).
+|
+| Input
+| Line 1: Number N of horses
+|
+| The N following lines: the strength Pi of each horse. Pi is an integer.
+|
+| Output
+| The difference D between the two closest strengths. D is an integer greater than or equal to 0.
+|
+*/
 func main() {
-	var horses int
-	fmt.Scanf("%d", &horses)
-	strengths := make([]int, 0, horses)
-	for i := 0; i < horses; i++ {
-		var strength int
-		fmt.Scanf("%d", &strength)
-		strengths = append(strengths, strength)
+	input, err := getUserInput()
+
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
-	fmt.Println("str", strengths)
-	sort.Ints(strengths)
-	fmt.Println("str2", strengths)
-	min := strengths[1] - strengths[0]
-	for i := 2; i < horses; i++ {
-		fmt.Printf("%d\n", strengths[i]-strengths[i-1])
-		if dif := strengths[i] - strengths[i-1]; dif < min {
-			min = dif
+
+	// make separate slice for the keep competitor Nrs
+	// will use competitor Nrs for pretty look output
+	competitors := make([]Competitor, len(input))
+
+	// fill it
+	for i, pi := range input {
+		competitors[i] = Competitor{Nr: i + 1, Pi: pi}
+	}
+
+	// sort should guarantee that closest numbers will be in right order
+	sort.SliceStable(competitors, func(i, j int) bool {
+		return competitors[i].Pi < competitors[j].Pi
+	})
+
+	// reverse loop for the get strongest competitors
+	// with same delta
+	pair := Pair{}
+
+	for i := len(competitors) - 1; i > 0; i-- {
+		fNr := competitors[i-1].Nr
+		sNr := competitors[i].Nr
+		delta := competitors[i].Pi - competitors[i-1].Pi
+
+		// if it's first iteration delta < than prev set new pair
+		if i == len(competitors)-1 || delta < pair.delta {
+			pair = Pair{fNr: fNr, sNr: sNr, delta: delta}
+
+			if delta == 0 {
+				break // bestPairFound
+			}
 		}
 	}
-	fmt.Println("total min", min)
+
+	fmt.Printf("There is best match: No: #%d, No: #%d [delta: %d]. \n",
+		pair.fNr,
+		pair.sNr,
+		pair.delta)
+}
+
+func getUserInput() ([]int, error) {
+	scanner := bufio.NewScanner(os.Stdin)
+
+	fmt.Println("Please enter a number of competitors [default: 10]:")
+	scanner.Scan()
+
+	inputNr := strings.TrimSpace(scanner.Text())
+	number := 10
+
+	if inputNr != "" {
+		n, err := strconv.Atoi(inputNr)
+
+		if err != nil {
+			return nil, err
+		}
+
+		number = n
+	}
+
+	input := make([]int, number)
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Println("Please set competitors Pi between: 1-100:")
+
+	for i := 1; i <= number; i++ {
+		fmt.Printf("#%d -> ", i)
+		piInput, _ := reader.ReadString('\n')
+
+		pi, _ := strconv.Atoi(strings.TrimSpace(piInput))
+
+		// validation
+		if pi == 0 || pi > 100 {
+			fmt.Println("Competitor Pi is required, please specify it between: 1-100.")
+			// will return back to write Pi for same competitor
+			i--
+			continue
+		}
+
+		input[i-1] = pi
+	}
+
+	return input, nil
 }
