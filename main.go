@@ -53,11 +53,11 @@ func main() {
 
 	// make separate slice for the keep competitor Nrs
 	// will use competitor Nrs for pretty look output
-	competitors := make([]Competitor, len(input))
+	competitors := make([]Competitor, 0, len(input))
 
 	// fill it
 	for i, pi := range input {
-		competitors[i] = Competitor{Nr: i + 1, Pi: pi}
+		competitors = append(competitors, Competitor{Nr: i + 1, Pi: pi})
 	}
 
 	// sort should guarantee that closest numbers will be in right order
@@ -93,7 +93,7 @@ func main() {
 func getUserInput() ([]int, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 
-	fmt.Println("Please enter a number of competitors [default: 10]:")
+	fmt.Println("Please enter a number of competitors [default: 10] [min: 2]:")
 	scanner.Scan()
 
 	inputNr := strings.TrimSpace(scanner.Text())
@@ -106,7 +106,11 @@ func getUserInput() ([]int, error) {
 			return nil, err
 		}
 
-		number = n
+		if n > 1 {
+			number = n
+		} else {
+			return nil, fmt.Errorf("invalid number [%d] please provide correct number greater than 2", n)
+		}
 	}
 
 	input := make([]int, number)
@@ -114,21 +118,27 @@ func getUserInput() ([]int, error) {
 
 	fmt.Println("Please set competitors Pi between: 1-100:")
 
-	for i := 1; i <= number; i++ {
-		fmt.Printf("#%d -> ", i)
-		piInput, _ := reader.ReadString('\n')
+	for i := 0; i < number; {
+		fmt.Printf("#%d -> ", i+1)
+		piInput, err := reader.ReadString('\n')
 
-		pi, _ := strconv.Atoi(strings.TrimSpace(piInput))
-
-		// validation
-		if pi == 0 || pi > 100 {
-			fmt.Println("Competitor Pi is required, please specify it between: 1-100.")
-			// will return back to write Pi for same competitor
-			i--
-			continue
+		if err != nil {
+			return nil, err
 		}
 
-		input[i-1] = pi
+		pi, err := strconv.Atoi(strings.TrimSpace(piInput))
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// validation
+		if pi > 0 && pi <= 100 {
+			input[i] = pi
+			i++
+		}
+
+		fmt.Println("Competitor Pi is required, please specify it between: 1-100.")
 	}
 
 	return input, nil
